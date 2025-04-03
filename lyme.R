@@ -45,25 +45,25 @@ glyme <- ppp(x = df$x, y = df$y, window = w, marks = df$class)
 df_0_ppp <- ppp(df_0[, "X"], df_0[, "Y"], window = w)
 df_1_ppp <- ppp(df_1[, "X"], df_1[, "Y"], window = w)
 
+# Tilman's scratchpad
+lyppp <- superimpose(df_0_ppp,df_1_ppp)
+marks(lyppp)<- factor(rep(c("control","case"),c(npoints(df_0_ppp),npoints(df_1_ppp))))
+plot(lyppp)
+summary(lyppp)
 
-#kde 0: control
-con <- bivariate.density(pp=df_0_ppp, h0=OS(df_0_ppp)/2, adapt=FALSE, resolution=750, verbose=TRUE, parallelise = 7)
+#bandwidth selection
+OS(lyppp)
+h <- LSCV.risk(lyppp,method="kelsall-diggle");h 
+h <- LSCV.risk(lyppp,method="davies");h 
 
-#kde 1: case
-cas <- bivariate.density(pp=df_1_ppp, h0=OS(df_0_ppp)/2, adapt=FALSE, resolution=750, verbose=TRUE, parallelise = 7)
-
-#risk
-rho <- risk(cas, con, tolerate = TRUE)
-
-plot(rho, tol.show = TRUE)
+#compute SPARR
+lyrr <- risk(lyppp, adapt=TRUE, h0=7200, resolution = 1500, tolerate=TRUE, pilot.symmetry="none") 
+plot(lyrr,main="adaptive asymmetric, h0=7200")
+points(df_0_ppp,pch=3,col="peachpuff4")
+points(df_1_ppp,pch=19,col="seagreen3")
 
 #classify points
-rho.class <- tol.classify(rho, cutoff = 0.05)
-
-#plot
-plot(rho)
-points(rho.class$fin,col=2)
-points(rho.class$fout)
+rho.class <- tol.classify(lyrr, cutoff = 0.05)
 
 #cluster report table
 ID <- 1:length(rho.class[["finsplit"]])       #cluster identifier
@@ -78,14 +78,27 @@ pcpolys <- rho.class$pcpolys %>%
   do.call(rbind, .) %>%
   st_set_crs(26912)
 pcpolys$ID <- 1:length(rho.class[["finsplit"]])
-st_write(pcpolys,"pcpolys.shp")
+#st_write(pcpolys,"pcpolys.shp")
 
-Area <- st_area(pcpolys) #Take care of units
+Area <- st_area(pcpolys) %>%
+  units::set_units(., value = km^2) #Takes care of units #Take care of units
 Case_density <- Cases/Area                    #
 
-#style it
-df_res <- data.frame(ID, N, Cases, Controls, Risk, Case_density, Area) %>%
-  gt() %>%
-  gt_theme_nytimes() %>%
-  tab_header(title = "Clusters of Lyme disease in Baltimore, MD")
-df_res
+#cluster report table
+df_res <- data.frame(ID, N, Cases, Controls, Risk, Case_density, Area)
+#write.csv(df_res, "clusters.csv", row.names = FALSE)
+
+#risk surface to raster
+r <- raster(lyrr$rr)
+crs(r) <- crs(pcpolys)
+
+#map it
+tm <- tm_shape(r) +
+  tm_raster(col.scale = tm_scale(style = "quantile", 
+                                 values = "brewer.oranges")) +
+  tm_shape(pcpolys) +
+  tm_borders(col = "black", lwd = 2) +
+  tm_layout(frame = FALSE, legend.show = FALSE)
+
+tmap_save(tm, "lyme_clusters.jpg", width = 4, height = 4)
+
