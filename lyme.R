@@ -57,7 +57,12 @@ h <- LSCV.risk(lyppp,method="kelsall-diggle");h
 h <- LSCV.risk(lyppp,method="davies");h 
 
 #compute SPARR
-lyrr <- risk(lyppp, adapt=TRUE, h0=7200, resolution = 1500, tolerate=TRUE, pilot.symmetry="none") 
+t1 <- Sys.time()
+#lyrr <- risk(lyppp, adapt=TRUE, h0=7200, resolution = 450, tolerate=TRUE, pilot.symmetry="none") 
+lyrr <- risk(lyppp, adapt=TRUE, h0=7200, resolution = 100, tolerate=TRUE, pilot.symmetry="none") 
+t2 <- Sys.time()
+t2-t1 
+
 plot(lyrr,main="adaptive asymmetric, h0=7200")
 points(df_0_ppp,pch=3,col="peachpuff4")
 points(df_1_ppp,pch=19,col="seagreen3")
@@ -76,9 +81,9 @@ Risk <- Cases/N                               #
 pcpolys <- rho.class$pcpolys %>%
   lapply(., FUN = st_as_sf) %>%
   do.call(rbind, .) %>%
-  st_set_crs(26912)
+  st_set_crs(2248)
 pcpolys$ID <- 1:length(rho.class[["finsplit"]])
-#st_write(pcpolys,"pcpolys.shp")
+#st_write(pcpolys,"pcpolys.shp", append = FALSE)
 
 Area <- st_area(pcpolys) %>%
   units::set_units(., value = km^2) #Takes care of units #Take care of units
@@ -98,7 +103,8 @@ tm <- tm_shape(r) +
                                  values = "brewer.oranges")) +
   tm_shape(pcpolys) +
   tm_borders(col = "black", lwd = 2) +
-  tm_layout(frame = FALSE, legend.show = FALSE)
+  tm_layout(frame = FALSE, legend.show = TRUE)
+tm
 
-tmap_save(tm, "lyme_clusters.jpg", width = 4, height = 4)
+#tmap_save(tm, "lyme_clusters.jpg", width = 4, height = 4)
 
