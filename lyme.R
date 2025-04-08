@@ -39,13 +39,13 @@ df_1 <- subset(df, Type == 1) %>% #cases
 
 #ppp object window
 w <- owin(poly=list(x=rev(geom$X),y=rev(geom$Y))) #window
-glyme <- ppp(x = df$x, y = df$y, window = w, marks = df$class)
+#glyme <- ppp(x = df$x, y = df$y, window = w, marks = df$class)
 
 #ppp
 df_0_ppp <- ppp(df_0[, "X"], df_0[, "Y"], window = w)
 df_1_ppp <- ppp(df_1[, "X"], df_1[, "Y"], window = w)
 
-# Tilman's scratchpad
+# create point pattern object
 lyppp <- superimpose(df_0_ppp,df_1_ppp)
 marks(lyppp)<- factor(rep(c("control","case"),c(npoints(df_0_ppp),npoints(df_1_ppp))))
 plot(lyppp)
@@ -61,8 +61,9 @@ t1 <- Sys.time()
 #lyrr <- risk(lyppp, adapt=TRUE, h0=7200, resolution = 450, tolerate=TRUE, pilot.symmetry="none") 
 lyrr <- risk(lyppp, adapt=TRUE, h0=7200, resolution = 100, tolerate=TRUE, pilot.symmetry="none") 
 t2 <- Sys.time()
-t2-t1 
+t2-t1
 
+#plotting
 plot(lyrr,main="adaptive asymmetric, h0=7200")
 points(df_0_ppp,pch=3,col="peachpuff4")
 points(df_1_ppp,pch=19,col="seagreen3")
@@ -96,6 +97,8 @@ df_res <- data.frame(ID, N, Cases, Controls, Risk, Case_density, Area)
 #risk surface to raster
 r <- raster(lyrr$rr)
 crs(r) <- crs(pcpolys)
+# writeRaster(r, "rho", format = "GTiff", overwrite=TRUE)
+
 
 #map it
 tm <- tm_shape(r) +
